@@ -23,29 +23,12 @@ def player(board):
     """
     Returns player who has the next turn on a board.
     """
-    # if board is in initial state, player X goes first
-    if board == initial_state():
+    x_count = sum(row.count(X) for row in board)
+    o_count = sum(row.count(O) for row in board)
+    if x_count <= o_count:
         return X
-    
-    # Create a dictionary to keep strack of how many times each player has gone
-    sums = {"X":0, "O":0}
-    
-    # loop through each cell of the board and count how many times each player has gone
-    for i in range(len(board)):
-        for j in range(len(board[i])):
-            if board[i][j] == "X":
-                #increment X
-                sums["X"] += 1
-            elif board[i][j] == "O":
-                #increment O
-               sums["O"] += 1
-
-    # if both players have gone the same number of times, its X's turn
-    if(sums["X"] == sums["O"]):
-        return X
-    
-    # else its O's turn
-    return O
+    else:
+        return O
     
 def actions(board):
     """
@@ -73,7 +56,7 @@ def result(board, action):
     col = action[1]
     
     # check to see if action is in bounds and being taken on an empty space
-    if(row > 0 and row < len(board) and col > 0 and col < len(board) and new[row][col] == EMPTY):
+    if(row >= 0 and row < len(board) and col >= 0 and col < len(board) and new[row][col] == EMPTY):
         new[row][col] = player(new)
     else:
         #raise value error is move is invalid
@@ -100,15 +83,12 @@ def winner(board):
     # check the winning combinations to see if a player has won
     for combination in winning_combinations:
         symbols = [board[row][col] for row, col in combination]
-        # if x won, return x
-        if symbols.count('X') == 3:
+        if symbols.count(X) == 3:
             return X
-        # if o won, return 0
-        if symbols.count('O') == 3:
+        if symbols.count(O) == 3:
             return O
     
-    # if no one has won, return False
-    return False
+    return None
 
 def terminal(board):
     """
@@ -133,44 +113,82 @@ def utility(board):
     Returns 1 if X has won the game, -1 if O has won, 0 otherwise.
     """
     # get potential winner
-    winner = winner(board)
+    potential_winner = winner(board)
     
-    # if x won, return 1
-    if winner == X:
+    if potential_winner == X:
         return 1
-    
-    # if o won, return -1
-    if winner == O:
+    elif potential_winner == O:
         return -1
-    
-    # else no winner, return 0
-    return 0
+    else:
+        return 0
 
-
+#TODO: comment this out
 def minimax(board):
     """
     Returns the optimal action for the current player on the board.
     """
-    # if the board is terminal, return None
+    #check if board is terminal before starting
     if terminal(board):
         return None
+    else:
+        # if player is x, run the max_value function and return best move
+        if player(board) == X:
+            value, move = max_value(board)
+            return move
+        #if player is o, run the min_value function and return best move
+        else:
+            value, move = min_value(board)
+            return move
+
+def max_value(board):
     
-    #get player, set best score var based on turn, empty best move
-    player = player(board)
-    best_score = float("-inf") if player == X else float("inf")
-    best_move = None
+    # check is the board is termianl
+    if terminal(board):
+        return utility(board), None
+
+    #set v to neg inf to get the largest value and move to none
+    v = float('-inf')
+    move = None
     
-    # loop through the possible actions
-    for move in actions(board):
-        # try each action and get the resulting score
-        new_board = result(board, move)
-        score = minimax(new_board)
+    #loop through actions
+    for action in actions(board):
+        curr, act = min_value(result(board, action))
         
-        # check to see if result of current action is better than previous
-        if (player == X and score > best_score) or (player == O and score < best_score):
-            best_score = score
-            best_move = move
-    
-    # return the best move
-    return best_move
+        #if curr val is greater than the prev value set it to the new v
+        if curr > v:
+            v = curr
+            move = action
             
+            #if it is the optimal move, end the funtion
+            if v == 1:
+                return v, move
+
+    #return the best move possible 
+    return v, move
+
+def min_value(board):
+    
+    # check if board is terminal
+    if terminal(board):
+        return utility(board), None
+
+    #set set v  to inf to find the smallest value and set move to none
+    v = float('inf')
+    move = None
+    
+    # look through action actions and get the max for each action
+    for action in actions(board):
+        curr, act = max_value(result(board, action))
+        
+        #if current val is less than smallest so far
+        if curr < v:
+            v = curr
+            move = action
+            
+            #if the move is optimal, cut the function and return it
+            if v == -1:
+                return v, move
+
+    #return the best move
+    return v, move
+    
